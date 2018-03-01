@@ -1,0 +1,98 @@
+---
+title: "IA - projeto"
+author: "Arthur Vinícius Tomé Rodrigues, João Victor Barroso Mafra, Jobson Lucas Dias da Silva"
+date: "23 de fevereiro de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+require(ggplot2, quietly = TRUE)
+require(dplyr, quietly = TRUE)
+require(bnlearn, quietly = TRUE)
+library(knitr, quietly = TRUE)
+```
+
+
+## Procedimento para ler os dados
+```{r, echo=FALSE}
+ler_dados = function(arquivo){
+  
+  require("dplyr", warn.conflicts = FALSE)
+  
+  file = read.csv(arquivo, stringsAsFactors = TRUE, encoding='UTF-8')
+  return (file)
+}
+```
+
+
+## Script para salvar em um csv os alunos de cc que tenham nota(exceto os que trancaram).
+```{r, echo=FALSE}
+alunos_ufcg = ler_dados("alunosUFCG.CSV")
+
+alunos_cc = alunos_ufcg %>% 
+  filter(Cod_Curso == 14102100 & Situacao != "Trancado") %>% 
+  select(Matricula, Cod_Disciplina, Cod_Evasao, Nome_Disciplina, Media_Disciplina, Situacao)
+
+write.csv(alunos_cc, file = "dados_alunos_cc.csv", row.names=FALSE, fileEncoding = "UTF-8")
+```
+
+
+## Ler arquivo com dados alunos cc
+```{r, echo=FALSE}
+df_alunos_cc = ler_dados("dados_alunos_cc.CSV")
+
+#transformar em fator os inteiros. Pode ser feito com a função lapply.
+df_alunos_cc$Cod_Disciplina = as.factor(df_alunos_cc$Cod_Disciplina)
+df_alunos_cc$Cod_Evasao = as.factor(df_alunos_cc$Cod_Evasao)
+df_alunos_cc$Media_Disciplina = as.factor(df_alunos_cc$Media_Disciplina)
+```
+
+
+## Filtrar dados de acordo com as notas pré-requisitos.
+```{r}
+
+```
+
+
+##Gerar BN para modelo simples
+```{r}
+##rede bayesiana gerada
+res <- hc(df_alunos_cc)
+#res$arcs <- res$arcs[-which((res$arcs[,'from'] == "fator_origem" & res$arcs[,'to'] == "fator_destino")),]
+plot(res)
+
+fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
+
+#print(fittedbn)
+
+cpquery(fittedbn, event = (Situacao=="Aprovado"), evidence = (Media_Disciplina == "8.3"))
+```
+
+
+##Gerar BN para nosso modelo de notas com pré-requisito
+```{r}
+
+```
+
+
+##Separação dados em treino(60%) e teste(30%)
+```{r}
+
+```
+
+
+##Validar BN gerada pelo R
+```{r}
+
+```
+
+##Validar nosso modelo para BN(Caxalau: preditor de reprovações considerando pré-requisitos)
+```{r}
+
+```
+
+##Comparação entre modelos(dados de teste)
+```{r}
+
+```
+
