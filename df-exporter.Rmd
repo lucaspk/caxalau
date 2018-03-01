@@ -1,6 +1,6 @@
 ---
 title: "IA - projeto"
-author: "Arthur VinÌcius TomÈ Rodrigues, Jo„o Victor Barroso Mafra, Jobson Lucas Dias da Silva"
+author: "Arthur Vin√≠cius Tom√© Rodrigues, Jo√£o Victor Barroso Mafra, Jobson Lucas Dias da Silva"
 date: "23 de fevereiro de 2018"
 output: html_document
 ---
@@ -41,20 +41,20 @@ write.csv(alunos_cc, file = "dados_alunos_cc.csv", row.names=FALSE, fileEncoding
 ```{r, echo=FALSE}
 df_alunos_cc = ler_dados("dados_alunos_cc.CSV")
 
-#transformar em fator os inteiros. Pode ser feito com a funÁ„o lapply.
+#transformar em fator os inteiros. Pode ser feito com a fun√ß√£o lapply.
 df_alunos_cc$Cod_Disciplina = as.factor(df_alunos_cc$Cod_Disciplina)
 df_alunos_cc$Cod_Evasao = as.factor(df_alunos_cc$Cod_Evasao)
 df_alunos_cc$Media_Disciplina = as.factor(df_alunos_cc$Media_Disciplina)
 ```
 
 
-## Filtrar dados de acordo com as notas prÈ-requisitos.
+## Filtrar dados de acordo com as notas pr√©-requisitos.
 ```{r}
 
 ```
 
 
-##Gerar BN para modelo simples
+## Gerar BN para modelo simples
 ```{r}
 ##rede bayesiana gerada
 res <- hc(df_alunos_cc)
@@ -69,29 +69,29 @@ cpquery(fittedbn, event = (Situacao=="Aprovado"), evidence = (Media_Disciplina =
 ```
 
 
-##Gerar BN para nosso modelo de notas com prÈ-requisito
+## Gerar BN para nosso modelo de notas com pr√©-requisito
 ```{r}
 
 ```
 
 
-##SeparaÁ„o dados em treino(60%) e teste(30%)
+## Separa√ß√£o dados em treino(60%) e teste(30%)
 ```{r}
 
 ```
 
 
-##Validar BN gerada pelo R
+## Validar BN gerada pelo R
 ```{r}
 
 ```
 
-##Validar nosso modelo para BN(Caxalau: preditor de reprovaÁıes considerando prÈ-requisitos)
+## Validar nosso modelo para BN(Caxalau: preditor de reprova√ß√µes considerando pr√©-requisitos)
 ```{r}
 
 ```
 
-##ComparaÁ„o entre modelos(dados de teste)
+## Compara√ß√£o entre modelos(dados de teste)
 ```{r}
 
 ```
