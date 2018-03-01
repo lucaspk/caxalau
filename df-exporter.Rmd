@@ -37,15 +37,39 @@ write.csv(alunos_cc, file = "dados_alunos_cc.csv", row.names=FALSE, fileEncoding
 ```
 
 
-## Ler arquivo com dados alunos cc
+## Ler arquivo com dados alunos de cc
 ```{r, echo=FALSE}
 df_alunos_cc = ler_dados("dados_alunos_cc.CSV")
-
-#transformar em fator os inteiros. Pode ser feito com a função lapply.
-df_alunos_cc$Cod_Disciplina = as.factor(df_alunos_cc$Cod_Disciplina)
-df_alunos_cc$Cod_Evasao = as.factor(df_alunos_cc$Cod_Evasao)
-df_alunos_cc$Media_Disciplina = as.factor(df_alunos_cc$Media_Disciplina)
 ```
+
+
+## Criar variáveis necessárias para modelo do Caxalau
+```{r, echo=FALSE}
+df_cc_notas_simplificadas = df_alunos_cc
+
+#transformar notas em int
+df_cc_notas_simplificadas$Media_Arredon = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
+                                                 function(x) round(x, digits = 0) )
+
+df_cc_notas_simplificadas$Media_Int = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
+                                                 function(x) x*10 )
+
+```
+
+
+## Transformar em fatores -> usar rede bayesiana
+```{r}
+##dados para o modelo gerado pelo R 
+col_names = colnames(df_alunos_cc)
+df_alunos_cc[, col_names] = lapply(df_alunos_cc[, col_names], factor)
+
+##dados para o modelo usado pelo Caxalau
+col_names_simp = colnames(df_cc_notas_simplificadas)
+df_cc_notas_simplificadas[, col_names_simp] = lapply(df_cc_notas_simplificadas[, col_names_simp], factor)
+```
+
+
+# ======= A partir daqui
 
 
 ## Filtrar dados de acordo com as notas pré-requisitos.
@@ -86,10 +110,12 @@ cpquery(fittedbn, event = (Situacao=="Aprovado"), evidence = (Media_Disciplina =
 
 ```
 
-## Validar nosso modelo para BN(Caxalau: preditor de reprovações considerando pré-requisitos)
+
+## Validar nosso modelo para BN do Caxalau
 ```{r}
 
 ```
+
 
 ## Comparação entre modelos(dados de teste)
 ```{r}
