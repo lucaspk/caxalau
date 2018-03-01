@@ -99,7 +99,7 @@ cpquery(fittedbn, event = (Situacao=="Aprovado"), evidence = (Media_Disciplina =
 ```
 
 
-## Separação dados em treino(60%) e teste(30%)
+## Separação dados em treino(60%) e teste(40%)
 ```{r}
 
 ```
