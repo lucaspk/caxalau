@@ -58,11 +58,12 @@ df_alunos_cc = ler_dados("dados_alunos_cc.CSV") %>%
 df_cc_notas_simplificadas = df_alunos_cc
 
 #transformar notas em int
-df_cc_notas_simplificadas$Media_Arredon = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
-                                                 function(x) round(x, digits = 0))
-
 df_cc_notas_simplificadas$Media_Int = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
                                                  function(x) round(x*10, digits = 0))
+
+#transformar reprovados por falta em reprovado, já que isso não vai interferir na nossa análise
+df_cc_notas_simplificadas[df_cc_notas_simplificadas == "Reprovado por Falta"] = as.character("Reprovado")
+#pode ser feito com lapply: df_cc...$Situacao = lapply(df_cc...$Situacao, function(x) ifelse(x == "Aprovado", "Aprovado", "Reprovado")) 
 
 #transformar para df -> tentar ordenar colunas criadas resulta em erro, pois contém lists e não vectors
 df_cc_notas_simplificadas = as.data.frame(lapply(df_cc_notas_simplificadas, unlist))
@@ -80,7 +81,7 @@ df_cc_notas_simplificadas = df_cc_notas_simplificadas %>%
 xx = df_cc_notas_simplificadas
 
 #transformar cada disciplina (código dela) em uma coluna
-xx = xx %>% dcast(Matricula + Media_Int + Cod_Disciplina + Media_Arredon + Cod_Evasao + Nome_Disciplina + Situacao ~ Cod_Disciplina, value.var = "Media_Disciplina") %>% group_by(Matricula)
+xx = xx %>% dcast(Matricula + Media_Int + Cod_Disciplina + Cod_Evasao + Nome_Disciplina + Situacao ~ Cod_Disciplina, value.var = "Media_Disciplina") %>% group_by(Matricula) 
 
 disciplins = as.character(disciplinas_escolhidas)
 
@@ -94,7 +95,9 @@ xx[disciplins] = lapply(xx[disciplins],
                             
                         })
 
-names(xx) = c("Matricula", "Media_Int", "Cod_Disciplina", "Media_Arredon", "Cod_Evasao", "Nome_Disciplina", "Situacao", "Discreta", "P1", "P2", "Grafos", "TC", "Eda", "IC", "GI", "Leda", "LP1", "LP2")
+names(xx) = c("Matricula", "Media_Int", "Cod_Disciplina", "Cod_Evasao", "Nome_Disciplina", "Situacao", "Discreta", "P1", "P2", "Grafos", "TC", "Eda", "IC", "GI", "Leda", "LP1", "LP2")
+
+xx = as.data.frame(lapply(xx, unlist))
 
 write.csv(xx, file = "alunos_notas_simplif.csv", row.names=FALSE, fileEncoding = "UTF-8")
 

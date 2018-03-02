@@ -25,15 +25,15 @@ df_alunos_cc = ler_dados("alunos_notas_simplif.csv")
 
 ## Transformar em fatores -> usar rede bayesiana
 ```{r}
-df_cc_notas_simplificadas = df_alunos_cc
+cc_notas_simplificadas = df_alunos_cc
 
 ##dados para o modelo gerado pelo R 
 col_names = colnames(df_alunos_cc)
 df_alunos_cc[, col_names] = lapply(df_alunos_cc[, col_names], factor)
 
 ##dados para o modelo usado pelo Caxalau
-col_names_simp = colnames(df_cc_notas_simplificadas)
-df_cc_notas_simplificadas[, col_names_simp] = lapply(df_cc_notas_simplificadas[, col_names_simp], factor)
+col_names_simp = colnames(cc_notas_simplificadas)
+cc_notas_simplificadas[, col_names_simp] = lapply(cc_notas_simplificadas[, col_names_simp], factor)
 
 ```
 
@@ -45,27 +45,27 @@ df_cc_notas_simplificadas[, col_names_simp] = lapply(df_cc_notas_simplificadas[,
 Ideia: filtrar por cada disciplina de forma individual e pegar as pessoas da intersecção.
 É necessário pensar uma forma de automatizar esse filtro de acordo com as disciplinas escolhidas, de modo que seja fácil escalar para mais disciplinas. 
 ```{r}
-p1_notas = df_cc_notas_simplificadas %>% filter(P1 == 55)
-lp1_notas = df_cc_notas_simplificadas %>% filter(LP1 == 55)
+p1_notas = cc_notas_simplificadas %>% filter(P1 == 55)
+lp1_notas = cc_notas_simplificadas %>% filter(LP1 == 55)
 
 discs = c("1411167", "1411180")
 
 #com intersect
 itsid = intersect(p1_notas$Matricula, lp1_notas$Matricula)
-data = df_cc_notas_simplificadas %>% filter(Matricula %in% itsid & Cod_Disciplina %in% discs)
+data = cc_notas_simplificadas %>% filter(Matricula %in% itsid & Cod_Disciplina %in% discs)
 
 #com join
-p1_notas = df_cc_notas_simplificadas %>% select(Matricula, P1, Situacao)
-lp1_notas = df_cc_notas_simplificadas %>% select(Matricula, LP1, Situacao)
+p1_notas = cc_notas_simplificadas %>% select(Matricula, P1, Situacao)
+lp1_notas = cc_notas_simplificadas %>% select(Matricula, LP1, Situacao)
 jooin = inner_join(p1_notas, lp1_notas, by = "Matricula")
 ```
 
 ## Gerar BN para nosso modelo do caxalau
 ```{r}
-res_ <- hc(df_cc_notas_simplificadas)
+res_ <- hc(cc_notas_simplificadas)
 plot(res_)
 
-fitted_bn <- bn.fit(res_, data = df_cc_notas_simplificadas)
+fitted_bn <- bn.fit(res_, data = cc_notas_simplificadas)
 
 # Calcula a bn para as disciplinas passadas da lista(no caso, as disciplinas que pretende cursar). Isso facilita nossa vida.
 # Assim está igual ao site do analytics.
@@ -102,7 +102,7 @@ prob_reprov_modelo_basico = 1.0 - cpquery(fitted_bn, event = (Situacao == "Aprov
                                           evidence = (Cod_Disciplina %in% disciplins))
 
 #filtro as disciplinas prÃ©-requisitos de p2
-filtrado = df_cc_notas_simplificadas %>% 
+filtrado = cc_notas_simplificadas %>% 
   group_by(Matricula) %>% 
   filter(Cod_Disciplina %in% disciplins)
 
