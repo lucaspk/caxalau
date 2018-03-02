@@ -27,6 +27,7 @@ ler_dados = function(arquivo){
 
 ## Script para salvar em um csv os alunos de cc que tenham nota(exceto os que trancaram).
 ```{r, echo=FALSE}
+##Isso aqui só executa se tiver os dados brutos
 alunos_ufcg = ler_dados("alunosUFCG.CSV")
 
 alunos_cc = alunos_ufcg %>% 
@@ -49,10 +50,13 @@ df_cc_notas_simplificadas = df_alunos_cc
 
 #transformar notas em int
 df_cc_notas_simplificadas$Media_Arredon = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
-                                                 function(x) round(x, digits = 0) )
+                                                 function(x) round(x, digits = 0))
 
 df_cc_notas_simplificadas$Media_Int = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
-                                                 function(x) x*10 )
+                                                 function(x) x*10)
+
+#transformar para df, pois tentar ordenar colunas criadas resulta em erro -> contém lists e não vectors
+df_cc_notas_simplificadas = as.data.frame(lapply(df_cc_notas_simplificadas, unlist))
 
 ```
 
@@ -72,10 +76,29 @@ df_cc_notas_simplificadas[, col_names_simp] = lapply(df_cc_notas_simplificadas[,
 # ======= A partir daqui
 
 
-## Filtrar dados de acordo com as notas pré-requisitos.
+## Gerar BN para nosso modelo do caxalau
 ```{r}
+res_ <- hc(df_cc_notas_simplificadas)
+plot(res_)
+
+fitted_bn <- bn.fit(res_, data = df_cc_notas_simplificadas)
+
+# Calcula a bn para as disciplinas passadas da lista(no caso, as disciplinas que pretende cursar). Isso facilita nossa vida.
+# Assim está igual ao site do analytics.
+
+disciplinas = c("1411167", "1109103")
+
+cpquery(fitted_bn, event = (Situacao=="Aprovado"), evidence = (Cod_Disciplina %in% disciplinas))
 
 ```
+
+
+## Testando para mais de uma disciplina
+
+```{r}
+cpquery(fitted_bn, event = (Situacao=="Aprovado"), evidence = (Cod_Disciplina == "1411167" | Cod_Disciplina == "1109103"))
+```
+
 
 
 ## Gerar BN para modelo simples
@@ -91,13 +114,6 @@ fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
 
 cpquery(fittedbn, event = (Situacao=="Aprovado"), evidence = (Media_Disciplina == "8.3"))
 ```
-
-
-## Gerar BN para nosso modelo de notas com pré-requisito
-```{r}
-
-```
-
 
 ## Separação dados em treino(60%) e teste(40%)
 ```{r}
