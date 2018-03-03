@@ -9,7 +9,11 @@ output: html_document
 require(ggplot2, quietly = TRUE)
 require(dplyr, quietly = TRUE)
 require(bnlearn, quietly = TRUE)
+require(tidyr)
+require(reshape2, quietly = TRUE)
 library(knitr, quietly = TRUE)
+library(reshape2, quietly = TRUE)
+
 ```
 
 
@@ -53,25 +57,15 @@ df_cc_notas_simplificadas$Media_Arredon = lapply(df_cc_notas_simplificadas$Media
                                                  function(x) round(x, digits = 0))
 
 df_cc_notas_simplificadas$Media_Int = lapply(df_cc_notas_simplificadas$Media_Disciplina, 
-                                                 function(x) x*10)
+                                                 function(x) round(x*10, digits = 0))
+
+#criar abreviação para nome das disciplinas
+
 
 #transformar para df, pois tentar ordenar colunas criadas resulta em erro -> contém lists e não vectors
 df_cc_notas_simplificadas = as.data.frame(lapply(df_cc_notas_simplificadas, unlist))
 
 ```
-
-
-## Transformar em fatores -> usar rede bayesiana
-```{r}
-##dados para o modelo gerado pelo R 
-col_names = colnames(df_alunos_cc)
-df_alunos_cc[, col_names] = lapply(df_alunos_cc[, col_names], factor)
-
-##dados para o modelo usado pelo Caxalau
-col_names_simp = colnames(df_cc_notas_simplificadas)
-df_cc_notas_simplificadas[, col_names_simp] = lapply(df_cc_notas_simplificadas[, col_names_simp], factor)
-```
-
 
 # ======= A partir daqui
 
@@ -88,9 +82,121 @@ fitted_bn <- bn.fit(res_, data = df_cc_notas_simplificadas)
 
 disciplinas = c("1411167", "1109103")
 
-cpquery(fitted_bn, event = (Situacao=="Aprovado"), evidence = (Cod_Disciplina %in% disciplinas))
+probabilidade_reprovacao_ = 1.0 - cpquery(fitted_bn, event = (Situacao=="Aprovado"), evidence = (Cod_Disciplina %in% disciplinas))
 
 ```
+
+##Testando com exemplo: quero cursar programação 2. Vejamos o risco de acordo com o desempenho nos pré-requisitos(p1, lp1 e ic). 
+
+Aqui estou utilizando o modelo exato(também chamado de SAFAMODEL), como sugerido por Arthur Vinícius. Depois vou testar o meu modelo considerando um range de 1 ponto.
+
+O ruim dessa estratégia é que o modelo probabilístico pode ser calculado com muito poucos dados. Dessa forma, ele não vai generalizar bem por falta de exemplos.
+
+```{r}
+
+#pre-requisitos p2: p1, lp1 e IC
+pre_requisitos = list("p1" = c("1411167", 55), "lp1" = c("1411180", 55), "ic" = c("1411174", 82))
+
+
+#salvando as disciplinas e notas
+disciplins = c()
+notas = c()
+
+for (i in pre_requisitos) { 
+  disciplins = append(disciplins, i[1])
+  notas = append(notas, i[2])
+}
+
+#Como fica para o modelo básico (sem filtros)
+prob_reprov_modelo_basico = 1.0 - cpquery(fitted_bn, event = (Situacao == "Aprovado"), 
+                                          evidence = (Cod_Disciplina %in% disciplins))
+
+#filtro as disciplinas pré-requisitos de p2
+filtrado = df_cc_notas_simplificadas %>% 
+  group_by(Matricula) %>% 
+  filter(Cod_Disciplina %in% disciplins)
+
+
+#@@@@@@@@@@@@@@@@@@@ignore@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+#filtro uma disciplina e a nota para pegar todas matrículas candidatas iniciais
+matriculas_candidatas = filtrado %>% 
+  filter(Cod_Disciplina == disciplinas[1]) %>% 
+  filter(Media_Int == notas[1]) %>% select(Matricula)
+
+matriculas_candidatas = as.array(as.character(matriculas_candidatas$Matricula))
+
+#filtro df utilizando as matrículas candidatas. O gargalo desse modelo diz respeito à diminuição sucessiva no número de exemplos nos dados, já que estou usando o valor exato.
+
+filtrado = filtrado %>% filter(as.character(Matricula) %in% matriculas_candidatas)
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+```
+
+## Transformar em coluna a disciplina para facilitar manipular média e o filtro por múltiplos critérios.
+```{r}
+
+xx = filtrado %>% 
+  mutate(Nome_Disciplina = as.factor(gsub(" ", ".", Nome_Disciplina)))
+
+xx = xx %>% dcast(Matricula + Media_Int + Media_Arredon + Cod_Evasao + Nome_Disciplina + Situacao ~ Cod_Disciplina, value.var = "Media_Disciplina")
+
+# preencher a coluna com a média inteira da disciplina
+xx[disciplins] = lapply(xx[disciplins], 
+                        function(x){ 
+                            media = xx$Media_Int
+                            ifelse(x == 1, 
+                                   media,
+                                   x)
+                            
+                        })
+
+```
+
+
+
+## Transformar em fatores -> usar rede bayesiana
+```{r}
+##dados para o modelo gerado pelo R 
+col_names = colnames(df_alunos_cc)
+df_alunos_cc[, col_names] = lapply(df_alunos_cc[, col_names], factor)
+
+##dados para o modelo usado pelo Caxalau
+col_names_simp = colnames(df_cc_notas_simplificadas)
+df_cc_notas_simplificadas[, col_names_simp] = lapply(df_cc_notas_simplificadas[, col_names_simp], factor)
+
+col_names_filtered = colnames(xx)
+xx[, col_names_filtered] = lapply(xx[, col_names_filtered], factor)
+
+```
+
+## Gerar modelo caxalau para o exemplo de p2: ainda precisa filtrar pelas notas - só filtrei as disciplinas
+```{r}
+res_caxalau = hc(xx)
+
+fitted_bn_caxalau = bn.fit(res_caxalau, data = xx)
+
+prob_reprov_caxalau = 1.0 - cpquery(fitted_bn_caxalau, event = (Situacao=="Aprovado"), 
+                                          evidence = (Cod_Disciplina %in% disciplins))
+```
+
+
+
+
+
+```{r}
+#caso recebamos em uma web application as disciplinas, mapear o nome simplificado da disciplina para o código  
+discips = list("cálculo I" = "1109103", "programação 1" = "1411167")
+```
+
+
+
+
+
+
+
 
 
 ## Testando para mais de uma disciplina
