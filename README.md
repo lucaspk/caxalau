@@ -21,9 +21,22 @@ Estabelecemos a escala *Samarílio Samarago* em quatro níveis para mensurar o r
 - risco alto: probabilidade > 45% e <= 65%
 - risco mafra boy virado no victolino chapolithoveenetsmile: probabilidade > 65% 
 
+## Dados escolhidos
+Por questões de simplificação, serão utilizados dados das disciplinas ministradas pelos docentes do Departamento de Sistemas e Computação (DSC) da UFCG dos três primeiros períodos, já que a imputação de pré-requisitos é manual. Porém, o modelo é generalizável para toda a grade curricular.
+
+**Resumindo**
+ - Queremos prever risco de reprovação em um conjunto de disciplina no segundo período, então forneceremos as notas dos pré-requisitos do primeiro período.
+ - Queremos fazer o mesmo que acima, mas agora para o terceiro período, então forneceremos as notas dos pré-requisitos do segundo período. 
+
+## Sobre os arquivos com os dados
+Arquivo **dados_alunos_cc.csv**: são os dados dos alunos de CC, de todas as disciplinas cursadas. Note que não estão todas as colunas dos dados brutos, tendo em vista que escolhemos apenas trabalhar com: *Matricula, Cod_Disciplina, Cod_Evasao, Nome_Disciplina, Media_Disciplina e Situacao*.
+
+Arquivo **alunos_notas_simplif.csv**: são os dados no formato que será adequado ao nosso modelo preditivo de reprovações utilizando nota dos pré-requisitos.
+
+
 ### Todo 
 
-- [ ] Organizar esse código em arquivos distintos. As funções para manipular os dados em um script e as de manipular o modelo em outro. O código atual está mais bagunçado que o meu quarto;
+- [x] Organizar esse código em arquivos distintos. As funções para manipular os dados em um script e as de manipular o modelo em outro;
 - [ ] Colocar para gerar o modelo para um exemplo concreto;
 - [ ] Treinar os 3 modelos: 60% dados para treino e 40% teste(talvez fazer validação cruzada, o que fica 20% para vc e 20% para teste);
 - [ ] Avaliar os 3 modelos. Comparar acurária e probabilidades geradas entre si;
