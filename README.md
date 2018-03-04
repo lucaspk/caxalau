@@ -37,6 +37,7 @@ Arquivo **alunos_notas_simplif.csv**: são os dados no formato que será adequad
 ### Todo 
 
 - [x] Organizar esse código em arquivos distintos. As funções para manipular os dados em um script e as de manipular o modelo em outro;
+- [ ] Desenvolver uma lógica adequada para generalização para várias outras disciplinas;
 - [ ] Colocar para gerar o modelo para um exemplo concreto;
 - [ ] Treinar os 3 modelos: 60% dados para treino e 40% teste(talvez fazer validação cruzada, o que fica 20% para vc e 20% para teste);
 - [ ] Avaliar os 3 modelos. Comparar acurária e probabilidades geradas entre si;
