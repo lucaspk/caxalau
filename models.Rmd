@@ -38,13 +38,145 @@ cc_notas_simplificadas[, col_names_simp] = lapply(cc_notas_simplificadas[, col_n
 ```
 
 
+## Elaborando as relações relevantes
+```{r}
+#Hill climbing
+res <- hc(df_alunos_cc)
+
+relations = res$arcs
+to_rel = relations[, 2]
+from_rel = relations[, 1]
+relations[, 1] = to_rel
+relations[, 2] = from_rel
+
+#trocando as relacoes
+tmp = relations[2, 2]
+relations[2, 2] = relations[2, 1]
+relations[2, 1] = tmp
+
+tmp = relations[3, 2]
+relations[3, 2] = relations[3, 1]
+relations[3, 1] = tmp
+
+relations = rbind(relations, 
+                  c("Leda", "Situacao"), 
+                  c("TC", "Situacao"), 
+                  c("Eda", "Situacao"), 
+                  c("Grafos", "Situacao"), 
+                  c("GI", "Situacao"),
+                  c("P1", "P2"), 
+                  c("LP1", "P2"),  
+                  c("IC", "P2"),  
+                  c("P1", "LP2"), 
+                  c("LP1", "LP2"),  
+                  c("IC", "LP2"), 
+                  c("P1", "Grafos"), 
+                  c("LP1", "Grafos"),
+                  c("IC", "Leda"), 
+                  c("P1", "Leda"), 
+                  c("LP1", "Leda"),
+                  c("Grafos", "Eda"),
+                  c("P2", "Eda"), 
+                  c("LP2", "Eda"),
+                  c("Discreta", "TC"),
+                  c("IC", "TC"), 
+                  c("Grafos", "TC")
+                  )
+
+res$arcs = relations
+
+plot(res)
+```
+
+## Gerar BN para modelo simples para os período
+```{r}
+disciplinas_p = c("1411174", "1411180", "1411167")
+disciplinas_s = c("1109113", "1411168", "1411181", "1411170")
+disciplinas_t = c("1411179", "1411176", "1411171", "1411172")
+
+filtered_data = df_alunos_cc %>% filter(Cod_Disciplina %in% disciplinas_s & Media_Int == "55")
+
+fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
+
+#todo mundo que colocou, se deu baixo, todo mundo vai ser aprovado. Se deu moderado, coloco alguns randomicos para ser reprovado
+prob_reprovar_1nd_per_simples = 1.0 - cpquery(fittedbn, 
+                                          event = (Situacao == "Aprovado"), 
+                                          evidence = (Cod_Disciplina %in% disciplinas_p))
+
+prob_reprovar_2nd_per_simples = 1.0 - cpquery(fittedbn, 
+                                          event = (Situacao == "Aprovado"), 
+                                          evidence = (Cod_Disciplina %in% disciplinas_s))
+
+
+prob_reprovar_3nd_per_simples = 1.0 - cpquery(fittedbn, 
+                                          event = (Situacao == "Aprovado"), 
+                                          evidence = (Cod_Disciplina %in% disciplinas_t))
+
+```
+
+
+## Gerar BN para modelo safatraio para os período
+parece que esse modelo n é tão bom
+```{r, echo=False}
+disciplinas_p = c("1411174", "1411180", "1411167")
+disciplinas_s = c("1109113", "1411168", "1411181", "1411170")
+disciplinas_t = c("1411179", "1411176", "1411171", "1411172")
+
+disciplinas_interesse = c("1411168", "1411174", "1411180", "1411167")
+
+candidatos_p1_medias = df_alunos_cc %>% 
+  filter(Cod_Disciplina %in% disciplinas_p) %>% 
+  filter(P1 == 100) %>% select(Matricula)
+
+tmp_alunos = as.array(candidatos_p1_medias$Matricula)
+
+alunos_filtrados = df_alunos_cc %>% filter(Matricula %in% tmp_alunos & 
+                                           Cod_Disciplina %in% disciplinas_interesse
+                                           )
+res_safa = hc(alunos_filtrados)
+
+fittedbn_safa = bn.fit(res_safa , 
+                        data = alunos_filtrados, 
+                        method="mle")
+
+
+#todo mundo que colocou, se deu baixo, todo mundo vai ser aprovado. Se deu moderado, coloco alguns randomicos para ser reprovado
+#não faz sentido gerar para o primeiro período pq não há pré-requisitos
+
+safa_prob_reprovar_2nd_per = cpquery(fittedbn_safa, 
+                                     event = (Situacao == "Reprovado" & 
+                                              Cod_Disciplina == "1411168"), 
+                                     evidence = (P1 == 100 & IC == 100))
+
+safa_prob_aprovar_2nd_per = cpquery(fittedbn_safa, 
+                                     event = (Situacao == "Aprovado" & 
+                                              Cod_Disciplina %in% disciplinas_s), 
+                                     evidence = (P1 == 100 & IC == 100))
+
+```
+
+
+
+```{r}
+#filtro uma disciplina e a nota para pegar todas matrÃ?culas candidatas iniciais
+matriculas_candidatas = filtrado %>% 
+  filter(Cod_Disciplina == disciplinas[1]) %>% 
+  filter(Media_Int == notas[1]) %>% select(Matricula)
+
+matriculas_candidatas = as.array(as.character(matriculas_candidatas$Matricula))
+
+#filtro df utilizando as matrÃ?culas candidatas. O gargalo desse modelo diz respeito Ã  diminuiÃ§Ã£o sucessiva no nÃºmero de exemplos nos dados, jÃ¡ que estou usando o valor exato.
+
+filtrado = filtrado %>% filter(as.character(Matricula) %in% matriculas_candidatas)
+```
+
 
 # ======= A partir daqui
 
 ## ideia para múltiplos filtros
 Ideia: filtrar por cada disciplina de forma individual e pegar as pessoas da intersecção.
 É necessário pensar uma forma de automatizar esse filtro de acordo com as disciplinas escolhidas, de modo que seja fácil escalar para mais disciplinas. 
-```{r}
+````{r}
 p1_notas = cc_notas_simplificadas %>% filter(P1 == 55)
 lp1_notas = cc_notas_simplificadas %>% filter(LP1 == 55)
 
@@ -180,21 +312,6 @@ discips = list("cÃ¡lculo I" = "1109103", "programaÃ§Ã£o 1" = "1411167")
 cpquery(fitted_bn, event = (Situacao=="Aprovado"), evidence = (Cod_Disciplina == "1411167" | Cod_Disciplina == "1109103"))
 ```
 
-
-
-## Gerar BN para modelo simples
-```{r}
-##rede bayesiana gerada
-res <- hc(df_alunos_cc)
-#res$arcs <- res$arcs[-which((res$arcs[,'from'] == "fator_origem" & res$arcs[,'to'] == "fator_destino")),]
-plot(res)
-
-fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
-
-#print(fittedbn)
-
-cpquery(fittedbn, event = (Situacao=="Aprovado"), evidence = (Media_Disciplina == "8.3"))
-```
 
 ## SeparaÃ§Ã£o dados em treino(60%) e teste(40%)
 ```{r}
