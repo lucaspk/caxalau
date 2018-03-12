@@ -32,11 +32,11 @@ ler_dados = function(arquivo){
 ## Salvar dados dos alunos de cc que tenham nota(exceto os que trancaram).
 ```{r, echo=FALSE}
 ##Isso aqui só executa se tiver os dados brutos
-alunos_ufcg = ler_dados("alunosUFCG.CSV")
+alunos_ufcg = ler_dados("alunosUFCGAnon.CSV")
 
 alunos_cc = alunos_ufcg %>% 
   filter(Cod_Curso == 14102100 & Situacao != "Trancado") %>% 
-  select(Matricula, Cod_Disciplina, Cod_Evasao, Nome_Disciplina, Media_Disciplina, Situacao)
+  select(Matricula, Cod_Disciplina, Cod_Evasao, Nome_Disciplina, Media_Disciplina, Periodo, Situacao)
 
 write.csv(alunos_cc, file = "dados_alunos_cc.csv", row.names=FALSE, fileEncoding = "UTF-8")
 ```
@@ -81,21 +81,27 @@ df_cc_notas_simplificadas = df_cc_notas_simplificadas %>%
 xx = df_cc_notas_simplificadas
 
 #transformar cada disciplina (código dela) em uma coluna
-xx = xx %>% dcast(Matricula + Media_Int + Cod_Disciplina + Cod_Evasao + Nome_Disciplina + Situacao ~ Cod_Disciplina, value.var = "Media_Disciplina") %>% group_by(Matricula) 
+xx = xx %>% dcast(Matricula + 
+                    Periodo + 
+                    Media_Int + 
+                    Cod_Disciplina + 
+                    Cod_Evasao + 
+                    Nome_Disciplina + 
+                    Situacao ~ Cod_Disciplina, value.var = "Media_Int") %>%
+  group_by(Matricula) 
 
 disciplins = as.character(disciplinas_escolhidas)
 
 # preencher a coluna com a média inteira da disciplina
 xx[disciplins] = lapply(xx[disciplins], 
                         function(x){ 
-                            media = xx$Media_Int
-                            ifelse(x >= 1, 
-                                   media,
+                            ifelse(is.na(x), 
+                                   0,
                                    x)
                             
                         })
 
-names(xx) = c("Matricula", "Media_Int", "Cod_Disciplina", "Cod_Evasao", "Nome_Disciplina", "Situacao", "Discreta", "P1", "P2", "Grafos", "TC", "Eda", "IC", "GI", "Leda", "LP1", "LP2")
+names(xx) = c("Matricula", "Periodo", "Media_Int", "Cod_Disciplina", "Cod_Evasao", "Nome_Disciplina", "Situacao", "Discreta", "P1", "P2", "Grafos", "TC", "Eda", "IC", "GI", "Leda", "LP1", "LP2")
 
 xx = as.data.frame(lapply(xx, unlist))
 

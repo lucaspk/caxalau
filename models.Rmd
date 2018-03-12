@@ -137,16 +137,15 @@ disciplinas_interesse = c("1411168", "1411174", "1411180", "1411167")
 
 candidatos_p1_medias = df_alunos_cc %>% 
   filter(Cod_Disciplina %in% disciplinas_primeiro_periogo) %>% 
-  filter(P1 == 100) %>% select(Matricula)
+  filter(P1 == 55) %>% select(Matricula)
 
 tmp_alunos = as.array(candidatos_p1_medias$Matricula)
 
 alunos_filtrados = df_alunos_cc %>% filter(Matricula %in% tmp_alunos & 
                                            Cod_Disciplina %in% disciplinas_interesse
                                            )
-res_safa = hc(alunos_filtrados)
 
-fittedbn_safa = bn.fit(res_safa , 
+fittedbn_safa = bn.fit(res, 
                         data = alunos_filtrados, 
                         method="mle")
 
@@ -157,7 +156,7 @@ fittedbn_safa = bn.fit(res_safa ,
 safa_prob_reprovar_2nd_per = cpquery(fittedbn_safa, 
                                      event = (Situacao == "Reprovado" & 
                                               Cod_Disciplina == "1411168"), 
-                                     evidence = (P1 == 100 & IC == 100))
+                                     evidence = (P1 == 55))
 
 safa_prob_aprovar_2nd_per = cpquery(fittedbn_safa, 
                                      event = (Situacao == "Aprovado" & 
@@ -165,6 +164,42 @@ safa_prob_aprovar_2nd_per = cpquery(fittedbn_safa,
                                      evidence = (P1 == 100 & IC == 100))
 
 ```
+
+
+
+
+
+## Gerar BN para modelo simples para os períodos - teste
+```{r}
+disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167")
+disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170")
+disciplinas_terceiro_periogo = c("1411179", "1411176", "1411171", "1411172")
+
+fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
+
+prob_reprovar_2nd_per_simples = cpquery(fittedbn, 
+                                          event = (Situacao == "Reprovado"), 
+                                          evidence = (Cod_Disciplina == "1411167" & 
+                                                        Media_Int == 0))
+
+
+prob_reprovar_3rd_per_simples = cpquery(fittedbn, 
+                                          event = (Situacao == "Reprovado"), 
+                                          evidence = (Cod_Disciplina %in% disciplinas_terceiro_periogo))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
