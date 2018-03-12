@@ -23,6 +23,19 @@ df_alunos_cc = ler_dados("alunos_notas_simplif.csv")
 ```
 
 
+## Range para as notas do modelo caxalau
+```{r}
+#Gerar o range de até 1 ponto (nesse caso 10 porque foi transformado em inteiro para funcionar na rede bayesiana) para usar no modelo caxalau na hora de filtrar os dados. 
+# Por exemplo, se a nota for x = 55, x = 51 ou mesmo x = 50 , então o range será [50,60]. 
+# O 100 é o caso especial, logo faremos [90, 100] 
+range_notas = function(x) {
+  ifelse(x != 100,
+        (x - (x %% 10)):(x - (x %% 10) + 10),
+        (90:100))
+}
+```
+
+
 ## Transformar em fatores -> usar rede bayesiana
 ```{r}
 cc_notas_simplificadas = df_alunos_cc
@@ -88,7 +101,8 @@ res$arcs = relations
 plot(res)
 ```
 
-## Gerar BN para modelo simples para os período
+
+## Gerar BN para modelo simples para os períodos
 ```{r}
 disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167")
 disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170")
@@ -113,8 +127,7 @@ prob_reprovar_3rd_per_simples = cpquery(fittedbn,
 ```
 
 
-## Gerar BN para modelo safatraio para os período
-parece que esse modelo n é tão bom
+## Gerar BN para modelo safatraio para os períodos
 ```{r, echo=False, quietly = TRUE}
 disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167")
 disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170")
@@ -148,12 +161,14 @@ safa_prob_reprovar_2nd_per = cpquery(fittedbn_safa,
 
 safa_prob_aprovar_2nd_per = cpquery(fittedbn_safa, 
                                      event = (Situacao == "Aprovado" & 
-                                              Cod_Disciplina %in% disciplinas_segundo_periogo), 
+                                              Cod_Disciplina == "1411168"), 
                                      evidence = (P1 == 100 & IC == 100))
 
 ```
 
 
+
+# ======= A partir daqui
 
 ```{r}
 #filtro uma disciplina e a nota para pegar todas matrÃ?culas candidatas iniciais
@@ -168,8 +183,6 @@ matriculas_candidatas = as.array(as.character(matriculas_candidatas$Matricula))
 filtrado = filtrado %>% filter(as.character(Matricula) %in% matriculas_candidatas)
 ```
 
-
-# ======= A partir daqui
 
 ## ideia para múltiplos filtros
 Ideia: filtrar por cada disciplina de forma individual e pegar as pessoas da intersecção.
