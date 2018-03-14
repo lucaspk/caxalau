@@ -22,6 +22,14 @@ library(reshape2, quietly = TRUE)
 df_alunos_cc = ler_dados("alunos_notas_simplif.csv")
 ```
 
+```{r}
+#colocando os dados no formato de todos em uma única linha - facilitar execução do caxalau
+abaco = df_alunos_cc %>% group_by(Matricula, Periodo) %>% 
+  summarise_at(c("P1", "P2", "LP1", "IC", "LP2", "Discreta", "Eda", "Leda", "GI", "Grafos", "TC"), sum)
+```
+
+
+
 
 ## Range para as notas do modelo caxalau
 ```{r}
