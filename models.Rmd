@@ -42,6 +42,58 @@ abaco = df_alunos_cc %>% group_by(Matricula, Periodo, Periodo_Curso) %>%
 
 ```
 
+Define situacao em cada periodo:
+
+```{r}
+
+classifica_linha <- function(linha){
+  periodo <- linha[3]
+  if (periodo == 1){
+    P1 <- linha[4]
+    LP1 <- linha[6]
+    IC <- linha[7]
+    if (P1 < 50 || LP1 < 50 || IC < 50){
+      return ("reprovado")
+    } else {
+      return("aprovado")
+    }
+  } else if (periodo == 2){
+    P2 <- linha[5]
+    LP2 <- linha[8]
+    Discreta <- linha[9]
+    Grafos <- linha[12]
+    if (P2 < 50 || LP2 < 50 || Discreta < 50 || Grafos < 50){
+      return ("reprovado")
+    } else {
+      return("aprovado")
+    }
+  } else {
+    EDA <- linha[10]
+    LEDA <- linha[11]
+    TC <- linha[13]
+    
+    if (EDA < 50 || LEDA < 50 || TC < 50){
+      return ("reprovado")
+    } else {
+      return("aprovado")
+    }
+    
+  }
+  
+}
+
+abaco$situacao <- abaco$Periodo
+
+for(i in 1:nrow(abaco)) {
+    row <- abaco[i,]
+    classificacao <- classifica_linha(row)
+    abaco$situacao[i] <- classificacao
+    
+}
+
+```
+
+
 
 
 
@@ -60,11 +112,11 @@ range_notas = function(x) {
 
 ## Transformar em fatores -> usar rede bayesiana
 ```{r}
-cc_notas_simplificadas = df_alunos_cc
+cc_notas_simplificadas = abaco
 
 ##dados para o modelo gerado pelo R 
-col_names = colnames(df_alunos_cc)
-df_alunos_cc[, col_names] = lapply(df_alunos_cc[, col_names], factor)
+col_names = colnames(abaco)
+abaco[, col_names] = lapply(abaco[, col_names], factor)
 
 ##dados para o modelo usado pelo Caxalau
 col_names_simp = colnames(cc_notas_simplificadas)
@@ -76,7 +128,7 @@ cc_notas_simplificadas[, col_names_simp] = lapply(cc_notas_simplificadas[, col_n
 ## Elaborando as relações relevantes
 ```{r}
 #Hill climbing
-res <- hc(df_alunos_cc)
+res <- hc(abaco)
 
 relations = res$arcs
 to_rel = relations[, 2]
