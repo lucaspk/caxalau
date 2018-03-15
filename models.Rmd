@@ -19,32 +19,23 @@ library(reshape2, quietly = TRUE)
 
 ## Ler arquivo com dados alunos de cc
 ```{r, echo=FALSE}
-df_alunos_cc = ler_dados("alunos_notas_simplif.csv") %>% select(-GI)
+df_alunos_cc = ler_dados("alunos_notas_simplif.csv")
 ```
 
+
+## gerando os dados para tornar possível a validação do modelo
+
 ```{r}
-disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167", "P1", "LP1", "IC")
-disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170", "P2", "LP2", "Discreta", "Grafos")
-disciplinas_terceiro_periogo = c("1411179", "1411176", "1411171", "1411172", "Eda", "Leda", "TC")
-
-##adicionar o período de acordo com as disciplinas que cursou 
-df_alunos_cc$Periodo_Curso = ifelse(
-  df_alunos_cc$Cod_Disciplina %in% disciplinas_terceiro_periogo, 3, 
-  ifelse(
-    df_alunos_cc$Cod_Disciplina %in% disciplinas_segundo_periogo, 2, 1
-    )
-  )
-
-#colocando os dados no formato de todos em uma única linha - facilitar execução do caxalau
-abaco = df_alunos_cc %>% group_by(Matricula, Periodo, Periodo_Curso) %>% 
-  summarise_at(c("P1", "P2", "LP1", "IC", "LP2", 
-                 "Discreta", "Eda", "Leda", "Grafos", "TC"), sum)
-
+## 200 significa que o cara tirou 0 (uma forma de diferenciar do 0 que substitui NA)
+abaco = ler_dados("abaco.csv")
 ```
 
-Define situacao em cada periodo:
+
+## Define situacao em cada periodo:
 
 ```{r}
+#se a média foi algum dos valores dessa lista, então reprovou
+notas_reprovacao = c(1:49, 200)
 
 classifica_linha <- function(linha){
   periodo <- linha[3]
@@ -52,49 +43,53 @@ classifica_linha <- function(linha){
     P1 <- linha[4]
     LP1 <- linha[6]
     IC <- linha[7]
-    if (P1 < 50 || LP1 < 50 || IC < 50){
-      return ("reprovado")
+    if (P1 %in% notas_reprovacao || 
+        LP1 %in% notas_reprovacao || 
+        IC %in% notas_reprovacao){
+      return ("Reprovado")
     } else {
-      return("aprovado")
+      return("Aprovado")
     }
   } else if (periodo == 2){
     P2 <- linha[5]
     LP2 <- linha[8]
     Discreta <- linha[9]
     Grafos <- linha[12]
-    if (P2 < 50 || LP2 < 50 || Discreta < 50 || Grafos < 50){
-      return ("reprovado")
+    if (P2 %in% notas_reprovacao || 
+        LP2 %in% notas_reprovacao || 
+        Discreta %in% notas_reprovacao || 
+        Grafos %in% notas_reprovacao){
+      return ("Reprovado")
     } else {
-      return("aprovado")
+      return("Aprovado")
     }
   } else {
     EDA <- linha[10]
     LEDA <- linha[11]
     TC <- linha[13]
     
-    if (EDA < 50 || LEDA < 50 || TC < 50){
-      return ("reprovado")
+    if (EDA %in% notas_reprovacao || 
+        LEDA %in% notas_reprovacao || 
+        TC %in% notas_reprovacao){
+      return ("Reprovado")
     } else {
-      return("aprovado")
+      return("Aprovado")
     }
     
   }
   
 }
 
-abaco$situacao <- abaco$Periodo
+abaco$Situacao <- abaco$Periodo
 
 for(i in 1:nrow(abaco)) {
     row <- abaco[i,]
     classificacao <- classifica_linha(row)
-    abaco$situacao[i] <- classificacao
+    abaco$Situacao[i] <- classificacao
     
 }
 
 ```
-
-
-
 
 
 ## Range para as notas do modelo caxalau
@@ -112,7 +107,7 @@ range_notas = function(x) {
 
 ## Transformar em fatores -> usar rede bayesiana
 ```{r}
-cc_notas_simplificadas = abaco
+cc_notas_simplificadas = df_alunos_cc
 
 ##dados para o modelo gerado pelo R 
 col_names = colnames(abaco)
@@ -128,29 +123,19 @@ cc_notas_simplificadas[, col_names_simp] = lapply(cc_notas_simplificadas[, col_n
 ## Elaborando as relações relevantes
 ```{r}
 #Hill climbing
-res <- hc(abaco)
+res <- hc(as.data.frame(abaco))
 
 relations = res$arcs
-to_rel = relations[, 2]
-from_rel = relations[, 1]
-relations[, 1] = to_rel
-relations[, 2] = from_rel
-
-#trocando as relacoes
-tmp = relations[2, 2]
-relations[2, 2] = relations[2, 1]
-relations[2, 1] = tmp
-
-tmp = relations[3, 2]
-relations[3, 2] = relations[3, 1]
-relations[3, 1] = tmp
+plot(res)
 
 relations = rbind(relations, 
                   c("Leda", "Situacao"), 
                   c("TC", "Situacao"), 
                   c("Eda", "Situacao"), 
-                  c("Grafos", "Situacao"), 
-                  c("GI", "Situacao"),
+                  c("Grafos", "Situacao"),
+                  c("LP1", "Situacao"), 
+                  c("P2", "Situacao"), 
+                  c("LP2", "Situacao"), 
                   c("P1", "P2"), 
                   c("LP1", "P2"),  
                   c("IC", "P2"),  
@@ -178,7 +163,12 @@ plot(res)
 
 ## Gerar BN para modelo simples para os períodos
 ```{r}
-fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
+disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167", "P1", "LP1", "IC")
+disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170", "P2", "LP2", "Discreta", "Grafos")
+disciplinas_terceiro_periogo = c("1411179", "1411171", "1411172", "Eda", "Leda", "TC")
+
+res_modelo_simples <- hc(cc_notas_simplificadas)
+fittedbn <- bn.fit(res_modelo_simples, data = cc_notas_simplificadas, method="mle")
 
 #todo mundo que colocou, se deu baixo, todo mundo vai ser aprovado. Se deu moderado, coloco alguns randomicos para ser reprovado
 prob_reprovar_1st_per_simples = cpquery(fittedbn, 
@@ -199,24 +189,22 @@ prob_reprovar_3rd_per_simples = cpquery(fittedbn,
 
 ## Gerar BN para modelo safatraio para os períodos
 ```{r, echo=False, quietly = TRUE}
-disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167")
-disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170")
-disciplinas_terceiro_periogo = c("1411179", "1411176", "1411171", "1411172")
-
-disciplinas_interesse = c("1411168", "1411174", "1411180", "1411167")
-
 candidatos_p1_medias = df_alunos_cc %>% 
   filter(Cod_Disciplina %in% disciplinas_primeiro_periogo) %>% 
   filter(P1 == 55) %>% select(Matricula)
 
-tmp_alunos = as.array(candidatos_p1_medias$Matricula)
+candidatos = ungroup(abaco) %>% filter(P1 == 55) %>%  select(Matricula)
+
+tmp_alunos = as.array(candidatos$Matricula)
 
 alunos_filtrados = df_alunos_cc %>% filter(Matricula %in% tmp_alunos & 
                                            Cod_Disciplina %in% disciplinas_interesse
                                            )
 
+alunos_selecionados = abaco %>% filter(Matricula %in% tmp_alunos)
+
 fittedbn_safa = bn.fit(res, 
-                        data = alunos_filtrados, 
+                        data = as.data.frame(abaco), 
                         method="mle")
 
 
@@ -224,14 +212,12 @@ fittedbn_safa = bn.fit(res,
 #não faz sentido gerar para o primeiro período pq não há pré-requisitos
 
 safa_prob_reprovar_2nd_per = cpquery(fittedbn_safa, 
-                                     event = (Situacao == "Reprovado" & 
-                                              Cod_Disciplina == "1411168"), 
-                                     evidence = (P1 == 55))
+                                     event = (Situacao == "Reprovado"), 
+                                     evidence = (Periodo_Curso == 2))
 
-safa_prob_aprovar_2nd_per = cpquery(fittedbn_safa, 
-                                     event = (Situacao == "Aprovado" & 
-                                              Cod_Disciplina == "1411168"), 
-                                     evidence = (P1 == 100 & IC == 100))
+safa_prob_reprovar_3rd_per = cpquery(fittedbn_safa, 
+                                     event = (Situacao == "Reprovado"), 
+                                     evidence = (Periodo_Curso == 3))
 
 ```
 

@@ -46,7 +46,7 @@ write.csv(alunos_cc, file = "dados_alunos_cc.csv", row.names=FALSE, fileEncoding
 ```{r, echo=FALSE}
 
 #disciplinas até o terceiro período ministradas por professores do DSC
-disciplinas_escolhidas = c(1411167, 1411180, 1411174, 1411168, 1411181, 1411170, 1411172, 1411179, 1411171, 1109113, 1411176)
+disciplinas_escolhidas = c(1411167, 1411180, 1411174, 1411168, 1411181, 1411170, 1411172, 1411179, 1411171, 1109113)
 
 df_alunos_cc = ler_dados("dados_alunos_cc.CSV") %>% 
   filter(Cod_Disciplina %in% disciplinas_escolhidas)
@@ -93,18 +93,36 @@ xx = xx %>% dcast(Matricula +
 disciplins = as.character(disciplinas_escolhidas)
 
 # preencher a coluna com a média inteira da disciplina
+# 200 significa que o cara tirou 0 (uma forma de diferenciar do 0 que substitui NA)
 xx[disciplins] = lapply(xx[disciplins], 
                         function(x){ 
-                            ifelse(is.na(x), 
-                                   0,
-                                   x)
+                            ifelse(is.na(x), 0, ifelse(x == 0, 200, x))
                             
                         })
 
-names(xx) = c("Matricula", "Periodo", "Media_Int", "Cod_Disciplina", "Cod_Evasao", "Nome_Disciplina", "Situacao", "Discreta", "P1", "P2", "Grafos", "TC", "Eda", "IC", "GI", "Leda", "LP1", "LP2")
+names(xx) = c("Matricula", "Periodo", "Media_Int", "Cod_Disciplina", "Cod_Evasao", "Nome_Disciplina", "Situacao", "Discreta", "P1", "P2", "Grafos", "TC", "Eda", "IC", "Leda", "LP1", "LP2")
 
 xx = as.data.frame(lapply(xx, unlist))
 
+disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167", "P1", "LP1", "IC")
+disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170", "P2", "LP2", "Discreta", "Grafos")
+disciplinas_terceiro_periogo = c("1411179", "1411171", "1411172", "Eda", "Leda", "TC")
+
+
+##adicionar o período de acordo com as disciplinas que cursou 
+xx$Periodo_Curso = ifelse(
+  xx$Cod_Disciplina %in% disciplinas_terceiro_periogo, 3, 
+  ifelse(
+    xx$Cod_Disciplina %in% disciplinas_segundo_periogo, 2, 1
+    )
+  )
+
+#colocando os dados no formato de todos em uma única linha - facilitar execução do caxalau
+dados_caxalau = xx %>% group_by(Matricula, Periodo, Periodo_Curso) %>% 
+  summarise_at(c("P1", "P2", "LP1", "IC", "LP2", 
+                 "Discreta", "Eda", "Leda", "Grafos", "TC"), sum)
+
 write.csv(xx, file = "alunos_notas_simplif.csv", row.names=FALSE, fileEncoding = "UTF-8")
+write.csv(dados_caxalau, file = "abaco.csv", row.names=FALSE, fileEncoding = "UTF-8")
 
 ```
