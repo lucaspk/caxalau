@@ -258,30 +258,6 @@ gera_previsao_terceiro_periodo <- function (notaP2) {
 
 ```
 
-##Gerando modelos para alguns casos de teste
-
-```{r, echo=False, quietly = TRUE}
-previsaoP1.1 <- gera_previsao_segundo_periodo(35)
-previsaoP1.1
-previsaoP1.2 <- gera_previsao_segundo_periodo(20)
-previsaoP1.2
-previsaoP1.3 <- gera_previsao_segundo_periodo(30)
-previsaoP1.3
-previsaoP1.10 <- gera_previsao_segundo_periodo(100)
-previsaoP1.10
-
-previsaoP2.1 <- gera_previsao_terceiro_periodo(34)
-previsaoP2.1
-previsaoP2.2 <- gera_previsao_terceiro_periodo(25)
-previsaoP2.2
-previsaoP2.3 <- gera_previsao_terceiro_periodo(30)
-previsaoP2.3
-previsaoP2.10 <- gera_previsao_terceiro_periodo(95)
-previsaoP2.10
-
-
-```
-
 
 ##Gerando casos de teste para prever riscos de reprovacao para segundo e terceiro períodos.
 
@@ -331,7 +307,7 @@ ggplot(data = result.p2, aes(x = notas.pre, y = previsoes.p2, colour = "#FF9999"
 ##Previsoes das cadeiras do terceiro periodo para varias notas de entrada nos pre requisitos
 
 ```{r}
-ggplot(data = result.p3, aes(x = notas.pre, y = previsoes.p3, colour = "#FF9999")) + geom_point() + geom_line() + ggtitle("Risco de reprovacao nas cadeiras do 2º período") + xlab("Nota no pre requisito") + ylab("Risco de reprovacao")
+ggplot(data = result.p3, aes(x = notas.pre, y = previsoes.p3, colour = "#FF9999")) + geom_point() + geom_line() + ggtitle("Risco de reprovacao nas cadeiras do 3º período") + xlab("Nota no pre requisito") + ylab("Risco de reprovacao")
 ```
 
 
