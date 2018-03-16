@@ -22,7 +22,6 @@ library(reshape2, quietly = TRUE)
 df_alunos_cc = ler_dados("alunos_notas_simplif.csv")
 ```
 
-
 ## gerando os dados para tornar possível a validação do modelo
 
 ```{r}
@@ -30,14 +29,12 @@ df_alunos_cc = ler_dados("alunos_notas_simplif.csv")
 abaco = ler_dados("abaco.csv")
 ```
 
-
-## Define situacao em cada periodo:
+## Classifica uma linha, que representa a matricula de um aluno em algum periodo. Se ele reprovou alguma das cadeiras cursadas então a linha é rotulada como "reprovado". Se ele pagou todas as cadeiras então a linha é rotulada como "aprovado".
 
 ```{r}
-#se a média foi algum dos valores dessa lista, então reprovou
-notas_reprovacao = c(1:49, 200)
-
 classifica_linha <- function(linha){
+  #se a média foi algum dos valores dessa lista, então reprovou
+  notas_reprovacao = c(1:49, 200)
   periodo <- linha[3]
   if (periodo == 1){
     P1 <- linha[4]
@@ -79,7 +76,12 @@ classifica_linha <- function(linha){
   }
   
 }
+```
 
+
+## Define situacao em cada periodo de matricula de um aluno:
+
+```{r}
 abaco$Situacao <- abaco$Periodo
 
 for(i in 1:nrow(abaco)) {
@@ -92,35 +94,24 @@ for(i in 1:nrow(abaco)) {
 ```
 
 
-## Range para as notas do modelo caxalau
+## Transformar em fatores -> usar rede bayesiana para o modelo simples e o modelo caxalau.
+
 ```{r}
-#Gerar o range de até 1 ponto (nesse caso 10 porque foi transformado em inteiro para funcionar na rede bayesiana) para usar no modelo caxalau na hora de filtrar os dados. 
-# Por exemplo, se a nota for x = 55, x = 51 ou mesmo x = 50 , então o range será [50,60]. 
-# O 100 é o caso especial, logo faremos [90, 100] 
-range_notas = function(x) {
-  ifelse(x != 100,
-        (x - (x %% 10)):(x - (x %% 10) + 10),
-        (90:100))
-}
-```
-
-
-## Transformar em fatores -> usar rede bayesiana
-```{r}
-cc_notas_simplificadas = df_alunos_cc
-
-##dados para o modelo gerado pelo R 
+## Dados para o modelo Caxalau.
 col_names = colnames(abaco)
 abaco[, col_names] = lapply(abaco[, col_names], factor)
 
-##dados para o modelo usado pelo Caxalau
+
+## Dados para o modelo simples gerado pelo R.
+cc_notas_simplificadas = df_alunos_cc
 col_names_simp = colnames(cc_notas_simplificadas)
 cc_notas_simplificadas[, col_names_simp] = lapply(cc_notas_simplificadas[, col_names_simp], factor)
 
 ```
 
 
-## Elaborando as relações relevantes
+## Elaborando as relações relevantes para o modelo Caxalau.
+
 ```{r}
 #Hill climbing
 res <- hc(as.data.frame(abaco))
@@ -160,88 +151,133 @@ res$arcs = relations
 plot(res)
 ```
 
+# MODELOS
 
-## Gerar BN para modelo simples para os períodos
+
+## Gerar BN para modelo simples para os períodos.
+
+Usamos dados "brutos", com poucas modificações, para deixar o R gerar a rede. Para efeitos de testes, é calculada probabilidade de um aluno reprovar o conjunto de cadeiras do primeiro, segundo e terceiro periodos.
+
 ```{r}
-disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167", "P1", "LP1", "IC")
-disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170", "P2", "LP2", "Discreta", "Grafos")
-disciplinas_terceiro_periogo = c("1411179", "1411171", "1411172", "Eda", "Leda", "TC")
+disciplinas_primeiro_periodo = c("1411174", "1411180", "1411167", "P1", "LP1", "IC")
+disciplinas_segundo_periodo = c("1109113", "1411168", "1411181", "1411170", "P2", "LP2", "Discreta", "Grafos")
+disciplinas_terceiro_periodo = c("1411179", "1411171", "1411172", "Eda", "Leda", "TC")
 
 res_modelo_simples <- hc(cc_notas_simplificadas)
+
+# Gerando modelo simples.
 fittedbn <- bn.fit(res_modelo_simples, data = cc_notas_simplificadas, method="mle")
 
-#todo mundo que colocou, se deu baixo, todo mundo vai ser aprovado. Se deu moderado, coloco alguns randomicos para ser reprovado
+# Probabilidade de a situacao ser reprovado, dado que as disciplins são apenas as do primeiro periodo.
 prob_reprovar_1st_per_simples = cpquery(fittedbn, 
                                           event = (Situacao == "Reprovado"), 
-                                          evidence = (Cod_Disciplina %in% disciplinas_primeiro_periogo))
+                                          evidence = (Cod_Disciplina %in% disciplinas_primeiro_periodo))
 
+# Probabilidade de a situacao ser reprovado, dado que as disciplins são apenas as do segundo periodo.
 prob_reprovar_2nd_per_simples = cpquery(fittedbn, 
                                           event = (Situacao == "Reprovado"), 
-                                          evidence = (Cod_Disciplina %in% disciplinas_segundo_periogo))
+                                          evidence = (Cod_Disciplina %in% disciplinas_segundo_periodo))
 
 
+# Probabilidade de a situacao ser reprovado, dado que as disciplins são apenas as do terceiro periodo.
 prob_reprovar_3rd_per_simples = cpquery(fittedbn, 
                                           event = (Situacao == "Reprovado"), 
-                                          evidence = (Cod_Disciplina %in% disciplinas_terceiro_periogo))
+                                          evidence = (Cod_Disciplina %in% disciplinas_terceiro_periodo))
+
+
+probs <- c(prob_reprovar_1st_per_simples, prob_reprovar_2nd_per_simples, prob_reprovar_3rd_per_simples)
+periodos <- c("1 periodo", "2 periodo", "3 periodo")
+result.modelo.simples <- data.frame(periodos, probs)
+
+ggplot(data=result.modelo.simples, aes(x=periodos, y=probs)) + ggtitle("Probabilidades de reprovacão - Modelo simples") + 
+  geom_bar(stat="identity", fill="#FF9999", colour="black") + scale_y_continuous(limits = c(0, 1)) +
+  geom_text(aes(label=probs), vjust=-0.3)
+
 
 ```
 
 
-## Gerar BN para modelo safatraio para os períodos
-```{r, echo=False, quietly = TRUE}
-candidatos_p1_medias = df_alunos_cc %>% 
-  filter(Cod_Disciplina %in% disciplinas_primeiro_periogo) %>% 
-  filter(P1 == 55) %>% select(Matricula)
+## Gerar BN para modelo Caxalau para os períodos
 
-candidatos = ungroup(abaco) %>% filter(P1 == 55) %>%  select(Matricula)
-
-tmp_alunos = as.array(candidatos$Matricula)
-
-alunos_filtrados = df_alunos_cc %>% filter(Matricula %in% tmp_alunos & 
-                                           Cod_Disciplina %in% disciplinas_interesse
-                                           )
-
-alunos_selecionados = abaco %>% filter(Matricula %in% tmp_alunos)
-
-fittedbn_safa = bn.fit(res, 
-                        data = as.data.frame(abaco), 
-                        method="mle")
+Esse modelo leva em consideração notas de pré-requisitos para prever a probabilidade de reprovação em um dado período. Assim, tivemos que realizar algumas mudanças no data frame original para propiciar tal abordagem.
 
 
-#todo mundo que colocou, se deu baixo, todo mundo vai ser aprovado. Se deu moderado, coloco alguns randomicos para ser reprovado
-#não faz sentido gerar para o primeiro período pq não há pré-requisitos
-
-safa_prob_reprovar_2nd_per = cpquery(fittedbn_safa, 
-                                     event = (Situacao == "Reprovado"), 
-                                     evidence = (Periodo_Curso == 2))
-
-safa_prob_reprovar_3rd_per = cpquery(fittedbn_safa, 
-                                     event = (Situacao == "Reprovado"), 
-                                     evidence = (Periodo_Curso == 3))
-
-```
-
-
-
-
-
-## Gerar BN para modelo simples para os períodos - teste
 ```{r}
-disciplinas_primeiro_periogo = c("1411174", "1411180", "1411167")
-disciplinas_segundo_periogo = c("1109113", "1411168", "1411181", "1411170")
-disciplinas_terceiro_periogo = c("1411179", "1411176", "1411171", "1411172")
 
-fittedbn <- bn.fit(res, data = df_alunos_cc, method="mle")
-
-prob_reprovar_2nd_per_simples = cpquery(fittedbn, 
-                                          event = (Situacao == "Reprovado"), 
-                                          evidence = (Cod_Disciplina == "1411167" & 
-                                                        Media_Int == 0))
+get_candidatos <- function (prerequisito, nota){
+  candidatos <- ungroup(abaco) %>% filter(prerequisito == nota) %>%  select(Matricula)
+  tmp_alunos <- as.array(candidatos$Matricula)
+  alunos_selecionados <- abaco %>% filter(Matricula %in% tmp_alunos)
+  return (alunos_selecionados)
+}
 
 
-prob_reprovar_3rd_per_simples = cpquery(fittedbn, 
-                                          event = (Situacao == "Reprovado"), 
-                                          evidence = (Cod_Disciplina %in% disciplinas_terceiro_periogo))
+gera_modelo <- function (alunos_selecionados, res){
+  fittedbn_safa <-bn.fit(res, 
+                        data = as.data.frame(alunos_selecionados), 
+                        method="mle")
+  
+  return (fittedbn_safa)
+}
+
+
+calcula_prob_reprovacao <- function(modelo, periodo){
+  prob <- cpquery(modelo, 
+                event = (Situacao == "Reprovado"), 
+                evidence = (Periodo_Curso == periodo))
+  
+  return (prob)
+}
+
+
+gera_previsao_segundo_periodo <- function (notaP1) {
+  P1 <- abaco[4]
+  alunos_selecionados = get_candidatos(P1, notaP1)
+
+  modelo1.periodo2 <- gera_modelo(alunos_selecionados, res)
+
+  periodo <- 2
+  prob.modelo.1 <- calcula_prob_reprovacao(modelo1.periodo2, periodo)
+  return (prob.modelo.1)
+}
+
+gera_previsao_terceiro_periodo <- function (notaP2) {
+  P2 <- abaco[5]
+  alunos_selecionados = get_candidatos(P2, notaP2)
+
+  modelo1.periodo2.p1.10 <- gera_modelo(alunos_selecionados, res)
+
+  periodo <- 3
+  prob.modelo.1 <- calcula_prob_reprovacao(modelo1.periodo2.p1.10, periodo)
+  return (prob.modelo.1)
+}
+
+
+
+```
+
+##Gerando modelos para alguns casos de teste
+
+```{r, echo=False, quietly = TRUE}
+
+previsaoP1.1 <- gera_previsao_segundo_periodo(10)
+previsaoP1.1
+previsaoP1.2 <- gera_previsao_segundo_periodo(20)
+previsaoP1.2
+previsaoP1.3 <- gera_previsao_segundo_periodo(30)
+previsaoP1.3
+previsaoP1.10 <- gera_previsao_segundo_periodo(100)
+previsaoP1.10
+
+previsaoP2.1 <- gera_previsao_terceiro_periodo(15)
+previsaoP2.1
+previsaoP2.2 <- gera_previsao_terceiro_periodo(25)
+previsaoP2.2
+previsaoP2.3 <- gera_previsao_terceiro_periodo(30)
+previsaoP2.3
+previsaoP2.10 <- gera_previsao_terceiro_periodo(95)
+previsaoP2.10
+
 
 ```
 
