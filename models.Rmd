@@ -165,6 +165,8 @@ disciplinas_terceiro_periodo = c("1411179", "1411171", "1411172", "Eda", "Leda",
 
 res_modelo_simples <- hc(cc_notas_simplificadas)
 
+plot(res_modelo_simples)
+
 # Gerando modelo simples.
 fittedbn <- bn.fit(res_modelo_simples, data = cc_notas_simplificadas, method="mle")
 
