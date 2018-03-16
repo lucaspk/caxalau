@@ -193,10 +193,101 @@ result.modelo.simples <- data.frame(periodos, probs)
 
 ggplot(data=result.modelo.simples, aes(x=periodos, y=probs)) + ggtitle("Probabilidades de reprovacão - Modelo simples") + 
   geom_bar(stat="identity", fill="#FF9999", colour="black") + scale_y_continuous(limits = c(0, 1)) +
-  geom_text(aes(label=probs), vjust=-0.3) + xlab("Periodo") + ylab("Risco de reprovacao")
+  geom_text(aes(label=probs), vjust=-0.3) + xlab("Periodo") + ylab("Risco de reprovacao") + 
+  theme(legend.background = element_blank(),
+        line = element_blank())
 
 
 ```
+
+## acurácia modelo simples
+
+```{r}
+
+statuss = ifelse(prob_reprovar_2nd_per_simples < 35, "Aprovado", "Reprovado")
+cc_notas_simplificadas$Simples = statuss
+
+acertos_modelo_simples = 0
+totalxy = 0
+situacoesxy = cc_notas_simplificadas$Situacao
+statuxy = cc_notas_simplificadas$Simples
+for(sitxy in situacoesxy) {
+  checkxy = ifelse(sitxy==statuxy, 1, 0)
+  acertos_modelo_simples = acertos_modelo_simples + checkxy
+  totalxy = totalxy + 1
+}
+acuracia_simples = acertos_modelo_simples/totalxy
+
+cat("Acurácia do modelo simples foi:", acuracia_simples[1])
+```
+
+
+
+
+## Acurácia caxalau
+```{r}
+candidatosx <- ungroup(abaco) %>% filter(P1 == 100) %>%  select(Matricula)
+tmp_alunosx <- as.array(candidatosx$Matricula)
+alunos_selecionadosx <- abaco %>% filter(Matricula %in% tmp_alunosx)
+
+fittedbn_safax <-bn.fit(res, 
+                        data = as.data.frame(alunos_selecionadosx), 
+                        method="mle")
+
+prob <- cpquery(fittedbn_safax, 
+                event = (Situacao == "Reprovado"), 
+                evidence = (Periodo_Curso == 2))
+
+status = ifelse(prob < 35, "Aprovado", "Reprovado")
+
+alunos_selecionadosx$Caxalau = status
+
+acertos = 0
+total = 0
+situacoes = alunos_selecionadosx$Situacao
+statu = alunos_selecionadosx$Caxalau
+for(sit in situacoes) {
+  check = ifelse(sit==statu, 1, 0)
+  acertos = acertos + check
+  total = total + 1
+}
+acuracia_nota_10_p1 = acertos/total
+
+cat("Acurácia do modelo Caxalau para o segundo período dada média de programação 1 = 10:", acuracia[1])
+```
+
+
+```{r}
+candidatosy <- ungroup(abaco) %>% filter(P1 == 55) %>%  select(Matricula)
+tmp_alunosy <- as.array(candidatosy$Matricula)
+alunos_selecionadosy <- abaco %>% filter(Matricula %in% tmp_alunosy)
+
+fittedbn_safay <-bn.fit(res, 
+                        data = as.data.frame(alunos_selecionadosy), 
+                        method="mle")
+
+prob <- cpquery(fittedbn_safay, 
+                event = (Situacao == "Reprovado"), 
+                evidence = (Periodo_Curso == 2))
+
+status = ifelse(prob < 35, "Aprovado", "Reprovado")
+
+alunos_selecionadosy$Caxalau = status
+
+acertosy = 0
+totaly = 0
+situacoesy = alunos_selecionadosy$Situacao
+statuy = alunos_selecionadosy$Caxalau
+for(sity in situacoesy) {
+  checky = ifelse(sity==statuy, 1, 0)
+  acertosy = acertosy + checky
+  totaly = totaly + 1
+}
+acuracia_nota_5_p1 = acertosy/totaly
+
+cat("Acurácia do modelo Caxalau para o segundo período dada média de programação 1 = 5.5 foi:", acuracia_nota_5_p1[1])
+```
+
 
 
 ## Gerar BN para modelo Caxalau para os períodos
@@ -300,14 +391,14 @@ result.p3$notas.pre<- result.p3$notas.pre/10
 
 ```{r}
 
-ggplot(data = result.p2, aes(x = notas.pre, y = previsoes.p2, colour = "#FF9999")) + geom_point() + geom_line() + ggtitle("Risco de reprovacao nas cadeiras do 2º período") + xlab("Nota no pre requisito") + ylab("Risco de reprovacao")
+ggplot(data = result.p2, aes(x = notas.pre, y = previsoes.p2, colour = "#FF9999")) + geom_point() + geom_line() + ggtitle("Risco de Reprovação: disciplinas do 2º período dada a média de Programação 1") + xlab("Nota no pre requisito") + ylab("Risco de reprovacao") + theme(legend.background=element_blank())
 
 ```
 
 ##Previsoes das cadeiras do terceiro periodo para varias notas de entrada nos pre requisitos
 
 ```{r}
-ggplot(data = result.p3, aes(x = notas.pre, y = previsoes.p3, colour = "#FF9999")) + geom_point() + geom_line() + ggtitle("Risco de reprovacao nas cadeiras do 3º período") + xlab("Nota no pre requisito") + ylab("Risco de reprovacao")
+ggplot(data = result.p3, aes(x = notas.pre, y = previsoes.p3, colour = "#FF9999")) + geom_point() + geom_line() + ggtitle("Risco de Reprovação: disciplinas do 3º período dada a média de Programação 2") + xlab("Nota no pre requisito") + ylab("Risco de reprovacao")
 ```
 
 
