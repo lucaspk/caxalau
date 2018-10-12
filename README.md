@@ -2,7 +2,7 @@
 
 ![](https://raw.githubusercontent.com/lucaspk/caxalau/master/Caxalau%20preditor.png)
 
-Caxalau é o filho primogênito da entidade mitológica Mãe Milina e seu esposo Cachangalanga. Porém, no projeto em tela, ele assumirá o papel de preditor de reprovações em um conjunto de disciplinas baseado nas notas dos pré-requisitos delas utilizando redes bayesianas.
+Caxalau é o filho primogênito da entidade mitológica Mãe Milina e seu esposo Cachangalanga. Porém, no projeto em tela, ele assumirá o papel de preditor de reprovações de um conjunto de disciplinas baseado nas notas dos pré-requisitos delas utilizando redes bayesianas.
 
 # Os Modelos 
 Teremos 3 modelos:
